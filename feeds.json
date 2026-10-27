@@ -1,0 +1,33 @@
+{
+  "refresh_minutes": 15,
+  "max_items_per_feed": 40,
+  "feeds": [
+    { "name": "BleepingComputer", "url": "https://www.bleepingcomputer.com/feed/", "category": "news" },
+    { "name": "The Hacker News", "url": "https://feeds.feedburner.com/TheHackersNews", "category": "news" },
+    { "name": "SecurityWeek", "url": "https://www.securityweek.com/feed/", "category": "news" },
+    { "name": "The Record", "url": "https://therecord.media/feed", "category": "news" },
+    { "name": "Dark Reading", "url": "https://www.darkreading.com/rss.xml", "category": "news" },
+    { "name": "Krebs on Security", "url": "https://krebsonsecurity.com/feed/", "category": "news" },
+    { "name": "Help Net Security", "url": "https://www.helpnetsecurity.com/feed/", "category": "news" },
+    { "name": "CyberScoop", "url": "https://cyberscoop.com/feed/", "category": "news" },
+
+    { "name": "Google Threat Intelligence", "url": "https://feeds.feedburner.com/threatintelligence/pvexyqv7v0v", "category": "cti" },
+    { "name": "Microsoft Threat Intelligence", "url": "https://www.microsoft.com/en-us/security/blog/topic/threat-intelligence/feed/", "category": "cti" },
+    { "name": "Cisco Talos", "url": "https://blog.talosintelligence.com/rss/", "category": "cti" },
+    { "name": "Unit 42", "url": "https://unit42.paloaltonetworks.com/feed/", "category": "cti" },
+    { "name": "Kaspersky Securelist", "url": "https://securelist.com/feed/", "category": "cti" },
+    { "name": "ESET WeLiveSecurity", "url": "https://www.welivesecurity.com/en/rss/feed/", "category": "cti" },
+    { "name": "Check Point Research", "url": "https://research.checkpoint.com/feed/", "category": "cti" },
+    { "name": "SentinelLABS", "url": "https://www.sentinelone.com/labs/feed/", "category": "cti" },
+    { "name": "CrowdStrike", "url": "https://www.crowdstrike.com/en-us/blog/feed", "category": "cti" },
+    { "name": "Recorded Future", "url": "https://www.recordedfuture.com/feed", "category": "cti" },
+    { "name": "The DFIR Report", "url": "https://thedfirreport.com/feed/", "category": "cti" },
+    { "name": "Sekoia.io", "url": "https://blog.sekoia.io/feed/", "category": "cti" },
+    { "name": "Elastic Security Labs", "url": "https://www.elastic.co/security-labs/rss/feed.xml", "category": "cti" },
+    { "name": "Huntress", "url": "https://www.huntress.com/blog/rss.xml", "category": "cti" },
+    { "name": "Volexity", "url": "https://www.volexity.com/feed/", "category": "cti" },
+    { "name": "Trend Micro Research", "url": "https://www.trendmicro.com/en_us/research.rss.xml", "category": "cti" },
+
+    { "name": "CISA Advisories", "url": "https://www.cisa.gov/cybersecurity-advisories/all.xml", "category": "advisory" }
+  ]
+}

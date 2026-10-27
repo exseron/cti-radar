@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CTI Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sticky console header, left rail of sources, main column as a timeline or a board of source cards */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --line: #d7dde4;
+  --fg: #16202b;
+  --muted: #5b6876;
+  --accent: #b45a00;
+  --accent-soft: #fbe8d3;
+  --news: #2459b8;
+  --cti: #6b3fb3;
+  --advisory: #b42f2f;
+  --ok: #1f8a4c;
+  --err: #c0392b;
+  --visited: #8a94a0;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f151c; --surface: #16202a; --line: #263342; --fg: #e3e9ef; --muted: #8e9cab;
+    --accent: #f0a43a; --accent-soft: #3a2a14; --news: #7aa7f5; --cti: #b393ef; --advisory: #f08080;
+    --ok: #4cc27f; --err: #f07167; --visited: #6b7886; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f151c; --surface: #16202a; --line: #263342; --fg: #e3e9ef; --muted: #8e9cab;
+  --accent: #f0a43a; --accent-soft: #3a2a14; --news: #7aa7f5; --cti: #b393ef; --advisory: #f08080;
+  --ok: #4cc27f; --err: #f07167; --visited: #6b7886; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--sans); }
+a { color: inherit; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header {
+  position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line);
+  padding: 10px max(16px, env(safe-area-inset-left)) 10px max(16px, env(safe-area-inset-right));
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .02em; font-size: 17px; }
+.brand svg { color: var(--accent); }
+.clock { font: 12px/1.4 var(--mono); color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+.clock b { color: var(--fg); font-weight: 500; }
+.spacer { flex: 1; }
+.search { min-width: 0; flex: 0 1 300px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--surface); }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+:root[data-theme="dark"] .btn.primary { color: #1a1206; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #1a1206; } }
+.btn:disabled { opacity: .6; cursor: progress; }
+
+.shell { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 20px;
+  padding: 18px max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left)); max-width: 1500px; margin: 0 auto; }
+@media (max-width: 860px) { .shell { grid-template-columns: minmax(0, 1fr); } }
+
+aside { display: flex; flex-direction: column; gap: 16px; align-self: start; position: sticky; top: 74px; max-height: calc(100vh - 90px); overflow: auto; }
+@media (max-width: 860px) { aside { position: static; max-height: none; } header { position: static; } }
+details summary { cursor: pointer; list-style-position: inside; }
+details .src-actions { margin: 4px 0 6px; }
+.label { font: 600 11px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.cats { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 11px; font-size: 13px; cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: var(--fg); background: var(--fg); color: var(--surface); }
+.sources { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.sources li label { display: grid; grid-template-columns: auto 8px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 5px; cursor: pointer; font-size: 13.5px; }
+.sources li label:hover { background: var(--surface); }
+.sources .n { font: 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.sources .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+.dot.err { background: var(--err); }
+.src-actions { display: flex; gap: 10px; font-size: 12px; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--muted); cursor: pointer; text-decoration: underline; }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 18px; }
+@media (max-width: 600px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { background: var(--surface); padding: 12px 14px; }
+.stat .v { font: 600 22px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+.stat .k { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.stat.hot .v { color: var(--accent); }
+
+.day { margin: 22px 0 6px; display: flex; align-items: baseline; gap: 10px; }
+.day:first-child { margin-top: 0; }
+.day h2 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; margin: 0; }
+.day span { font: 12px var(--mono); color: var(--muted); }
+.list { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.row { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; padding: 12px 14px; border-top: 1px solid var(--line); }
+.row:first-child { border-top: 0; }
+.row time { font: 12.5px/1.9 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 2px; }
+.src { font-weight: 600; color: var(--c, var(--muted)); }
+.cat-news { --c: var(--news); } .cat-cti { --c: var(--cti); } .cat-advisory { --c: var(--advisory); }
+.tag { font: 600 10.5px/1 var(--sans); letter-spacing: .06em; padding: 3px 6px; border-radius: 3px; background: var(--accent-soft); color: var(--accent); }
+.title { font-weight: 600; font-size: 15.5px; text-decoration: none; display: inline; text-wrap: pretty; }
+.title:hover { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+.title.read { color: var(--visited); font-weight: 500; }
+.ext { display: inline-block; margin-left: 4px; color: var(--muted); font-size: 12px; }
+.sum { color: var(--muted); font-size: 13.5px; margin: 3px 0 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 80ch; }
+
+.board { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; display: flex; flex-direction: column; min-width: 0; }
+.card header { position: static; padding: 10px 14px; display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); z-index: 0; }
+.card header .src { font-size: 14px; }
+.card ol { list-style: none; margin: 0; padding: 4px 0; }
+.card li { padding: 7px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: baseline; }
+.card li a { text-decoration: none; font-size: 14px; line-height: 1.4; }
+.card li a:hover { text-decoration: underline; }
+.card li time { font: 11.5px var(--mono); color: var(--muted); white-space: nowrap; }
+.card .errline { padding: 12px 14px; font-size: 13px; color: var(--err); }
+
+.empty { padding: 40px 20px; text-align: center; color: var(--muted); background: var(--surface); border: 1px dashed var(--line); border-radius: 8px; }
+.spin { display: inline-block; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12 19 6"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>
+    CTI Radar
+  </div>
+  <div class="clock" aria-live="polite">
+    <span>Son tarama <b id="last">—</b></span>
+    <span>Sonraki <b id="next">—</b></span>
+  </div>
+  <div class="spacer"></div>
+  <input id="q" class="search" type="search" placeholder="Başlık veya özette ara (ör. ransomware, CVE-2026)" aria-label="Ara">
+  <div class="seg" role="group" aria-label="Görünüm">
+    <button id="v-stream" aria-pressed="true">Akış</button>
+    <button id="v-board" aria-pressed="false">Pano</button>
+  </div>
+  <button id="markread" class="btn">Tümünü okundu say</button>
+  <button id="refresh" class="btn primary">Şimdi yenile</button>
+</header>
+
+<div class="shell">
+  <aside>
+    <section>
+      <p class="label">Tür</p>
+      <div class="cats" id="cats"></div>
+    </section>
+    <section>
+      <p class="label">Zaman</p>
+      <div class="cats" id="ranges"></div>
+    </section>
+    <details id="srcbox" open>
+      <summary class="label">Kaynaklar <span id="srccount"></span></summary>
+      <div class="src-actions"><button class="linkbtn" id="all-on">Hepsini seç</button><button class="linkbtn" id="all-off">Hiçbiri</button></div>
+      <ul class="sources" id="sources"></ul>
+    </details>
+  </aside>
+
+  <main>
+    <div class="stats" id="stats"></div>
+    <div id="view"></div>
+  </main>
+</div>
+
+<script>
+const CATS = { all: "Tümü", news: "Haber", cti: "CTI blog", advisory: "Bildiri" };
+const RANGES = { 24: "24 saat", 72: "3 gün", 168: "7 gün", 0: "Hepsi" };
+const POLL_MS = 60_000;
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("ctiradar." + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("ctiradar." + k, JSON.stringify(v)); } catch {} },
+};
+
+const ui = {
+  cat: store.get("cat", "all"),
+  range: store.get("range", 168),
+  view: store.get("view", "stream"),
+  hidden: new Set(store.get("hidden", [])),
+  read: new Set(store.get("read", [])),
+  q: "",
+};
+// Items first seen after this moment get the "YENİ" tag.
+const baseline = store.get("lastSeen", null);
+let data = { items: [], feeds: [] };
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const safeUrl = (u) => /^https?:\/\//i.test(u) ? u : "#";
+
+function relTime(iso) {
+  if (!iso) return "—";
+  const s = Math.round((Date.now() - new Date(iso)) / 1000);
+  if (s < -30) { const m = Math.ceil(-s / 60); return m + " dk içinde"; }
+  if (s < 60) return "az önce";
+  if (s < 3600) return Math.floor(s / 60) + " dk önce";
+  if (s < 86400) return Math.floor(s / 3600) + " sa önce";
+  return Math.floor(s / 86400) + " gün önce";
+}
+const hhmm = (d) => d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+function dayLabel(d) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const x = new Date(d); x.setHours(0, 0, 0, 0);
+  const diff = Math.round((today - x) / 86400000);
+  if (diff === 0) return "Bugün";
+  if (diff === 1) return "Dün";
+  return d.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" });
+}
+const isNew = (it) => !ui.read.has(it.id) && baseline && it.first_seen > baseline;
+
+function visibleItems() {
+  const q = ui.q.trim().toLocaleLowerCase("tr");
+  const cutoff = ui.range ? Date.now() - ui.range * 3600_000 : 0;
+  return data.items.filter((it) =>
+    (ui.cat === "all" || it.category === ui.cat) &&
+    !ui.hidden.has(it.source) &&
+    (!cutoff || new Date(it.published) >= cutoff) &&
+    (!q || (it.title + " " + it.summary + " " + it.source).toLocaleLowerCase("tr").includes(q)));
+}
+
+function renderFilters() {
+  $("#cats").innerHTML = Object.entries(CATS).map(([k, v]) =>
+    `<button class="chip" data-cat="${k}" aria-pressed="${ui.cat === k}">${v}</button>`).join("");
+  $("#ranges").innerHTML = Object.entries(RANGES).map(([k, v]) =>
+    `<button class="chip" data-range="${k}" aria-pressed="${String(ui.range) === k}">${v}</button>`).join("");
+  const counts = {};
+  data.items.forEach((it) => counts[it.source] = (counts[it.source] || 0) + 1);
+  const order = { news: 0, cti: 1, advisory: 2 };
+  const feeds = [...data.feeds].sort((a, b) => (order[a.category] ?? 9) - (order[b.category] ?? 9) || a.name.localeCompare(b.name));
+  $("#srccount").textContent = `(${data.feeds.length - ui.hidden.size}/${data.feeds.length})`;
+  $("#sources").innerHTML = feeds.map((f) => `
+    <li><label title="${esc(f.ok ? f.url : (f.error || "Hata") + " — " + f.url)}">
+      <input type="checkbox" data-src="${esc(f.name)}" ${ui.hidden.has(f.name) ? "" : "checked"}>
+      <span class="dot ${f.ok ? "" : "err"}"></span>
+      <span class="name cat-${f.category}">${esc(f.name)}</span>
+      <span class="n">${counts[f.name] || 0}</span>
+    </label></li>`).join("") || `<li class="n">Kaynaklar yükleniyor…</li>`;
+}
+
+function renderStats(items) {
+  const day = Date.now() - 86400_000;
+  const okFeeds = data.feeds.filter((f) => f.ok).length;
+  const fresh = data.items.filter((it) => new Date(it.published) >= day).length;
+  const newCount = data.items.filter(isNew).length;
+  $("#stats").innerHTML = `
+    <div class="stat hot"><div class="v">${newCount}</div><div class="k">Son ziyaretten beri yeni</div></div>
+    <div class="stat"><div class="v">${fresh}</div><div class="k">Son 24 saatte yayımlanan</div></div>
+    <div class="stat"><div class="v">${items.length}</div><div class="k">Filtreye uyan kayıt</div></div>
+    <div class="stat"><div class="v">${okFeeds}<span style="color:var(--muted)">/${data.feeds.length}</span></div><div class="k">Erişilebilen kaynak</div></div>`;
+}
+
+function itemLink(it, cls) {
+  return `<a class="${cls} ${ui.read.has(it.id) ? "read" : ""}" href="${esc(safeUrl(it.link))}" target="_blank" rel="noopener noreferrer" data-id="${it.id}">${esc(it.title)}</a>`;
+}
+
+function renderStream(items) {
+  if (!items.length) return emptyState();
+  let html = "", current = null, buf = [];
+  const flush = () => { if (buf.length) html += `<div class="day"><h2>${current}</h2><span>${buf.length} kayıt</span></div><div class="list">${buf.join("")}</div>`; buf = []; };
+  for (const it of items) {
+    const d = new Date(it.published);
+    const label = dayLabel(d);
+    if (label !== current) { flush(); current = label; }
+    buf.push(`<article class="row">
+      <time datetime="${it.published}">${hhmm(d)}</time>
+      <div>
+        <div class="meta"><span class="src cat-${it.category}">${esc(it.source)}</span>${isNew(it) ? '<span class="tag">YENİ</span>' : ""}</div>
+        ${itemLink(it, "title")}<span class="ext" aria-hidden="true">↗</span>
+        ${it.summary ? `<p class="sum">${esc(it.summary)}</p>` : ""}
+      </div></article>`);
+  }
+  flush();
+  return html;
+}
+
+function renderBoard(items) {
+  const bySrc = new Map();
+  items.forEach((it) => { if (!bySrc.has(it.source)) bySrc.set(it.source, []); bySrc.get(it.source).push(it); });
+  const feeds = data.feeds.filter((f) => !ui.hidden.has(f.name) && (ui.cat === "all" || f.category === ui.cat));
+  feeds.sort((a, b) => ((bySrc.get(b.name) || [])[0]?.published || "").localeCompare((bySrc.get(a.name) || [])[0]?.published || ""));
+  if (!feeds.length) return emptyState();
+  return `<div class="board">${feeds.map((f) => {
+    const list = (bySrc.get(f.name) || []).slice(0, 7);
+    const body = list.length
+      ? `<ol>${list.map((it) => `<li><span>${isNew(it) ? '<span class="tag">YENİ</span> ' : ""}${itemLink(it, "")}</span><time datetime="${it.published}">${relTime(it.published)}</time></li>`).join("")}</ol>`
+      : f.ok ? `<div class="errline" style="color:var(--muted)">Bu aralıkta yazı yok.</div>` : `<div class="errline">Erişilemedi: ${esc(f.error)}</div>`;
+    return `<section class="card"><header><span class="src cat-${f.category}">${esc(f.name)}</span><span class="n" style="font:12px var(--mono);color:var(--muted)">${CATS[f.category] || ""}</span></header>${body}</section>`;
+  }).join("")}</div>`;
+}
+
+function emptyState() {
+  if (!data.feeds.length) return `<div class="empty"><span class="spin">◌</span> İlk tarama yapılıyor. Kaynaklar birkaç saniye içinde gelecek.</div>`;
+  return `<div class="empty">Bu filtrelere uyan kayıt yok. Zaman aralığını genişletin veya kaynak seçimini değiştirin.</div>`;
+}
+
+function render() {
+  const items = visibleItems();
+  renderFilters();
+  renderStats(items);
+  $("#view").innerHTML = ui.view === "board" ? renderBoard(items) : renderStream(items);
+  $("#v-stream").setAttribute("aria-pressed", ui.view === "stream");
+  $("#v-board").setAttribute("aria-pressed", ui.view === "board");
+}
+
+let nextRefresh = null, lastRefresh = null;
+function tickClock() {
+  $("#last").textContent = relTime(lastRefresh);
+  $("#next").textContent = data.refreshing ? "taranıyor…" : relTime(nextRefresh);
+}
+
+async function load() {
+  try {
+    const r = await fetch("/api/feed", { cache: "no-store" });
+    data = await r.json();
+    lastRefresh = data.last_refresh; nextRefresh = data.next_refresh;
+    render(); tickClock();
+    $("#refresh").disabled = data.refreshing;
+    $("#refresh").textContent = data.refreshing ? "Taranıyor…" : "Şimdi yenile";
+    return data.refreshing;
+  } catch {
+    $("#last").textContent = "sunucuya ulaşılamadı";
+    return false;
+  }
+}
+
+async function poll() {
+  const busy = await load();
+  setTimeout(poll, busy || !data.feeds.length ? 3000 : POLL_MS);
+}
+
+// --- events ---
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-cat],[data-range],[data-id]");
+  if (!t) return;
+  if (t.dataset.cat) { ui.cat = t.dataset.cat; store.set("cat", ui.cat); render(); }
+  else if (t.dataset.range != null) { ui.range = Number(t.dataset.range); store.set("range", ui.range); render(); }
+  else markRead(t);
+});
+// Middle-click also opens a new tab; count it as read too.
+document.addEventListener("auxclick", (e) => { const t = e.target.closest("[data-id]"); if (e.button === 1 && t) markRead(t); });
+function markRead(t) {
+  ui.read.add(t.dataset.id);
+  store.set("read", [...ui.read].slice(-5000));
+  t.classList.add("read");
+  t.closest("article, li")?.querySelector(".tag")?.remove();
+  renderStats(visibleItems());
+}
+$("#sources").addEventListener("change", (e) => {
+  const s = e.target.dataset.src; if (!s) return;
+  e.target.checked ? ui.hidden.delete(s) : ui.hidden.add(s);
+  store.set("hidden", [...ui.hidden]); render();
+});
+$("#all-on").onclick = () => { ui.hidden.clear(); store.set("hidden", []); render(); };
+$("#all-off").onclick = () => { data.feeds.forEach((f) => ui.hidden.add(f.name)); store.set("hidden", [...ui.hidden]); render(); };
+$("#q").addEventListener("input", (e) => { ui.q = e.target.value; render(); });
+$("#v-stream").onclick = () => { ui.view = "stream"; store.set("view", "stream"); render(); };
+$("#v-board").onclick = () => { ui.view = "board"; store.set("view", "board"); render(); };
+$("#markread").onclick = () => { data.items.forEach((it) => ui.read.add(it.id)); store.set("read", [...ui.read].slice(-5000)); render(); };
+$("#refresh").onclick = async () => {
+  $("#refresh").disabled = true; $("#refresh").textContent = "Taranıyor…";
+  await fetch("/api/refresh", { method: "POST" }).catch(() => {});
+  setTimeout(load, 1500);
+};
+// Remember when the user last looked, so the next visit can flag new items.
+const markSeen = () => store.set("lastSeen", new Date().toISOString());
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") markSeen(); });
+window.addEventListener("pagehide", markSeen);
+if (matchMedia("(max-width: 860px)").matches) $("#srcbox").open = false;
+setInterval(tickClock, 15_000);
+poll();
+</script>
+</body>
+</html>
