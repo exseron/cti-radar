@@ -1,45 +1,45 @@
 # CTI Radar
 
-CTI firmalarının bloglarını ve güvenlik haber sitelerinin RSS/Atom akışlarını tek bir panoda toplar.
-Sunucu akışları belirli aralıklarla kendisi çeker; sayfa açıkken her dakika yeni kayıtları gösterir.
+A dashboard that collects RSS/Atom feeds from threat intelligence vendor blogs and security news sites in one place.
+The server fetches the feeds on a schedule, and an open page picks up new items every minute.
 
-## Çalıştırma
+## Running
 
-Yalnızca Python 3.9+ gerekir, ek paket yok.
+Requires only Python 3.9+, no extra packages.
 
 ```bash
 python3 server.py              # http://localhost:8080
-python3 server.py --port 9000  # farklı port
+python3 server.py --port 9000  # different port
 ```
 
-Docker ile:
+With Docker:
 
 ```bash
 docker build -t cti-radar .
 docker run -d -p 8080:8080 --name cti-radar cti-radar
 ```
 
-## Özellikler
+## Features
 
-- **Akış** görünümü: tüm kaynaklar güne göre gruplanmış tek zaman çizelgesi.
-- **Pano** görünümü: her kaynak için son 7 yazıyı gösteren kartlar; erişilemeyen kaynak hata nedeniyle görünür.
-- Başlığa tıklamak yazıyı yeni sekmede açar ve okundu olarak işaretler.
-- Son ziyaretten sonra gelen kayıtlar **YENİ** etiketi alır.
-- Tür (Haber / CTI blog / Bildiri), zaman aralığı ve kaynak filtresi; başlık ve özette arama.
-- **Şimdi yenile** düğmesi beklemeden tüm kaynakları yeniden tarar.
-- Filtreler, okundu bilgisi ve görünüm tarayıcıda saklanır.
-- Kayıtlar `cache.json` dosyasına yazılır; sunucu yeniden başlayınca eski veriyle açılır.
+- **Stream** view: a single timeline of all sources, grouped by day.
+- **Board** view: one card per source with its latest 7 posts; unreachable sources show the error.
+- Clicking a title opens the post in a new tab and marks it as read.
+- Items that arrived since your last visit get a **NEW** tag.
+- Filter by type (News / CTI blogs / Advisories), time range and source; search titles and summaries.
+- **Refresh now** rescans every source without waiting for the next scheduled run.
+- Filters, read state and the selected view are kept in the browser.
+- Items are saved to `cache.json`, so a restarted server opens with the previous data.
 
-## Kaynak ekleme / çıkarma
+## Adding or removing sources
 
-`feeds.json` dosyasını düzenleyin. Değişiklik bir sonraki taramada (veya **Şimdi yenile** ile) uygulanır, yeniden başlatma gerekmez.
+Edit `feeds.json`. Changes apply on the next scan (or on **Refresh now**); no restart needed.
 
 ```json
-{ "name": "Kaynak adı", "url": "https://ornek.com/feed/", "category": "cti" }
+{ "name": "Source name", "url": "https://example.com/feed/", "category": "cti" }
 ```
 
-`category` değeri `news`, `cti` veya `advisory` olabilir.
-`refresh_minutes` tarama aralığını (varsayılan 15 dk), `max_items_per_feed` kaynak başına alınacak kayıt sayısını belirler.
+`category` can be `news`, `cti` or `advisory`.
+`refresh_minutes` sets the scan interval (default 15), and `max_items_per_feed` sets how many entries to keep per source.
 
-Kenar çubuğunda kırmızı noktalı bir kaynak erişilemiyor demektir; fareyle üzerine gelince hata nedeni görünür.
-Akış adresi değişmiş olabilir: sitenin RSS bağlantısını bulup `feeds.json` içinde güncelleyin.
+A red dot next to a source in the sidebar means it could not be reached; hover over it to see why.
+The feed URL may have changed: find the site's current RSS link and update it in `feeds.json`.

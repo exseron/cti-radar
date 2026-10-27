@@ -172,7 +172,7 @@ def fetch_feed(feed, prev, max_items):
             "category": info["category"],
         })
     if not items:
-        info["error"] = "Akışta okunabilir kayıt bulunamadı"
+        info["error"] = "No readable entries in feed"
         return info, None
     info.update(ok=True, count=len(items))
     return info, items
@@ -218,7 +218,7 @@ def refresh_all():
         snapshot = json.dumps(state, ensure_ascii=False)
     CACHE_FILE.write_text(snapshot, encoding="utf-8")
     ok = sum(1 for i, _ in results if i["ok"])
-    print(f"[{datetime.now():%H:%M:%S}] yenilendi: {ok}/{len(results)} kaynak, {len(state['items'])} kayıt", flush=True)
+    print(f"[{datetime.now():%H:%M:%S}] refreshed: {ok}/{len(results)} sources, {len(state['items'])} items", flush=True)
 
 
 def scheduler():

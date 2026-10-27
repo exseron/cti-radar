@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -135,32 +135,32 @@ details .src-actions { margin: 4px 0 6px; }
     CTI Radar
   </div>
   <div class="clock" aria-live="polite">
-    <span>Son tarama <b id="last">—</b></span>
-    <span>Sonraki <b id="next">—</b></span>
+    <span>Last scan <b id="last">—</b></span>
+    <span>Next <b id="next">—</b></span>
   </div>
   <div class="spacer"></div>
-  <input id="q" class="search" type="search" placeholder="Başlık veya özette ara (ör. ransomware, CVE-2026)" aria-label="Ara">
-  <div class="seg" role="group" aria-label="Görünüm">
-    <button id="v-stream" aria-pressed="true">Akış</button>
-    <button id="v-board" aria-pressed="false">Pano</button>
+  <input id="q" class="search" type="search" placeholder="Search titles and summaries (e.g. ransomware, CVE-2026)" aria-label="Search">
+  <div class="seg" role="group" aria-label="View">
+    <button id="v-stream" aria-pressed="true">Stream</button>
+    <button id="v-board" aria-pressed="false">Board</button>
   </div>
-  <button id="markread" class="btn">Tümünü okundu say</button>
-  <button id="refresh" class="btn primary">Şimdi yenile</button>
+  <button id="markread" class="btn">Mark all as read</button>
+  <button id="refresh" class="btn primary">Refresh now</button>
 </header>
 
 <div class="shell">
   <aside>
     <section>
-      <p class="label">Tür</p>
+      <p class="label">Type</p>
       <div class="cats" id="cats"></div>
     </section>
     <section>
-      <p class="label">Zaman</p>
+      <p class="label">Time range</p>
       <div class="cats" id="ranges"></div>
     </section>
     <details id="srcbox" open>
-      <summary class="label">Kaynaklar <span id="srccount"></span></summary>
-      <div class="src-actions"><button class="linkbtn" id="all-on">Hepsini seç</button><button class="linkbtn" id="all-off">Hiçbiri</button></div>
+      <summary class="label">Sources <span id="srccount"></span></summary>
+      <div class="src-actions"><button class="linkbtn" id="all-on">Select all</button><button class="linkbtn" id="all-off">None</button></div>
       <ul class="sources" id="sources"></ul>
     </details>
   </aside>
@@ -172,8 +172,8 @@ details .src-actions { margin: 4px 0 6px; }
 </div>
 
 <script>
-const CATS = { all: "Tümü", news: "Haber", cti: "CTI blog", advisory: "Bildiri" };
-const RANGES = { 24: "24 saat", 72: "3 gün", 168: "7 gün", 0: "Hepsi" };
+const CATS = { all: "All", news: "News", cti: "CTI blogs", advisory: "Advisories" };
+const RANGES = { 24: "24 hours", 72: "3 days", 168: "7 days", 0: "All time" };
 const POLL_MS = 60_000;
 
 const store = {
@@ -189,7 +189,7 @@ const ui = {
   read: new Set(store.get("read", [])),
   q: "",
 };
-// Items first seen after this moment get the "YENİ" tag.
+// Items first seen after this moment get the "NEW" tag.
 const baseline = store.get("lastSeen", null);
 let data = { items: [], feeds: [] };
 
@@ -200,31 +200,31 @@ const safeUrl = (u) => /^https?:\/\//i.test(u) ? u : "#";
 function relTime(iso) {
   if (!iso) return "—";
   const s = Math.round((Date.now() - new Date(iso)) / 1000);
-  if (s < -30) { const m = Math.ceil(-s / 60); return m + " dk içinde"; }
-  if (s < 60) return "az önce";
-  if (s < 3600) return Math.floor(s / 60) + " dk önce";
-  if (s < 86400) return Math.floor(s / 3600) + " sa önce";
-  return Math.floor(s / 86400) + " gün önce";
+  if (s < -30) { const m = Math.ceil(-s / 60); return "in " + m + " min"; }
+  if (s < 60) return "just now";
+  if (s < 3600) return Math.floor(s / 60) + " min ago";
+  if (s < 86400) return Math.floor(s / 3600) + " h ago";
+  return Math.floor(s / 86400) + " d ago";
 }
-const hhmm = (d) => d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+const hhmm = (d) => d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 function dayLabel(d) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const x = new Date(d); x.setHours(0, 0, 0, 0);
   const diff = Math.round((today - x) / 86400000);
-  if (diff === 0) return "Bugün";
-  if (diff === 1) return "Dün";
-  return d.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" });
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  return d.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" });
 }
 const isNew = (it) => !ui.read.has(it.id) && baseline && it.first_seen > baseline;
 
 function visibleItems() {
-  const q = ui.q.trim().toLocaleLowerCase("tr");
+  const q = ui.q.trim().toLowerCase();
   const cutoff = ui.range ? Date.now() - ui.range * 3600_000 : 0;
   return data.items.filter((it) =>
     (ui.cat === "all" || it.category === ui.cat) &&
     !ui.hidden.has(it.source) &&
     (!cutoff || new Date(it.published) >= cutoff) &&
-    (!q || (it.title + " " + it.summary + " " + it.source).toLocaleLowerCase("tr").includes(q)));
+    (!q || (it.title + " " + it.summary + " " + it.source).toLowerCase().includes(q)));
 }
 
 function renderFilters() {
@@ -243,7 +243,7 @@ function renderFilters() {
       <span class="dot ${f.ok ? "" : "err"}"></span>
       <span class="name cat-${f.category}">${esc(f.name)}</span>
       <span class="n">${counts[f.name] || 0}</span>
-    </label></li>`).join("") || `<li class="n">Kaynaklar yükleniyor…</li>`;
+    </label></li>`).join("") || `<li class="n">Loading sources…</li>`;
 }
 
 function renderStats(items) {
@@ -252,10 +252,10 @@ function renderStats(items) {
   const fresh = data.items.filter((it) => new Date(it.published) >= day).length;
   const newCount = data.items.filter(isNew).length;
   $("#stats").innerHTML = `
-    <div class="stat hot"><div class="v">${newCount}</div><div class="k">Son ziyaretten beri yeni</div></div>
-    <div class="stat"><div class="v">${fresh}</div><div class="k">Son 24 saatte yayımlanan</div></div>
-    <div class="stat"><div class="v">${items.length}</div><div class="k">Filtreye uyan kayıt</div></div>
-    <div class="stat"><div class="v">${okFeeds}<span style="color:var(--muted)">/${data.feeds.length}</span></div><div class="k">Erişilebilen kaynak</div></div>`;
+    <div class="stat hot"><div class="v">${newCount}</div><div class="k">New since last visit</div></div>
+    <div class="stat"><div class="v">${fresh}</div><div class="k">Published in last 24 h</div></div>
+    <div class="stat"><div class="v">${items.length}</div><div class="k">Matching filters</div></div>
+    <div class="stat"><div class="v">${okFeeds}<span style="color:var(--muted)">/${data.feeds.length}</span></div><div class="k">Sources reachable</div></div>`;
 }
 
 function itemLink(it, cls) {
@@ -265,7 +265,7 @@ function itemLink(it, cls) {
 function renderStream(items) {
   if (!items.length) return emptyState();
   let html = "", current = null, buf = [];
-  const flush = () => { if (buf.length) html += `<div class="day"><h2>${current}</h2><span>${buf.length} kayıt</span></div><div class="list">${buf.join("")}</div>`; buf = []; };
+  const flush = () => { if (buf.length) html += `<div class="day"><h2>${current}</h2><span>${buf.length} ${buf.length === 1 ? "item" : "items"}</span></div><div class="list">${buf.join("")}</div>`; buf = []; };
   for (const it of items) {
     const d = new Date(it.published);
     const label = dayLabel(d);
@@ -273,7 +273,7 @@ function renderStream(items) {
     buf.push(`<article class="row">
       <time datetime="${it.published}">${hhmm(d)}</time>
       <div>
-        <div class="meta"><span class="src cat-${it.category}">${esc(it.source)}</span>${isNew(it) ? '<span class="tag">YENİ</span>' : ""}</div>
+        <div class="meta"><span class="src cat-${it.category}">${esc(it.source)}</span>${isNew(it) ? '<span class="tag">NEW</span>' : ""}</div>
         ${itemLink(it, "title")}<span class="ext" aria-hidden="true">↗</span>
         ${it.summary ? `<p class="sum">${esc(it.summary)}</p>` : ""}
       </div></article>`);
@@ -291,15 +291,15 @@ function renderBoard(items) {
   return `<div class="board">${feeds.map((f) => {
     const list = (bySrc.get(f.name) || []).slice(0, 7);
     const body = list.length
-      ? `<ol>${list.map((it) => `<li><span>${isNew(it) ? '<span class="tag">YENİ</span> ' : ""}${itemLink(it, "")}</span><time datetime="${it.published}">${relTime(it.published)}</time></li>`).join("")}</ol>`
-      : f.ok ? `<div class="errline" style="color:var(--muted)">Bu aralıkta yazı yok.</div>` : `<div class="errline">Erişilemedi: ${esc(f.error)}</div>`;
+      ? `<ol>${list.map((it) => `<li><span>${isNew(it) ? '<span class="tag">NEW</span> ' : ""}${itemLink(it, "")}</span><time datetime="${it.published}">${relTime(it.published)}</time></li>`).join("")}</ol>`
+      : f.ok ? `<div class="errline" style="color:var(--muted)">No posts in this range.</div>` : `<div class="errline">Unreachable: ${esc(f.error)}</div>`;
     return `<section class="card"><header><span class="src cat-${f.category}">${esc(f.name)}</span><span class="n" style="font:12px var(--mono);color:var(--muted)">${CATS[f.category] || ""}</span></header>${body}</section>`;
   }).join("")}</div>`;
 }
 
 function emptyState() {
-  if (!data.feeds.length) return `<div class="empty"><span class="spin">◌</span> İlk tarama yapılıyor. Kaynaklar birkaç saniye içinde gelecek.</div>`;
-  return `<div class="empty">Bu filtrelere uyan kayıt yok. Zaman aralığını genişletin veya kaynak seçimini değiştirin.</div>`;
+  if (!data.feeds.length) return `<div class="empty"><span class="spin">◌</span> Running the first scan. Sources will appear in a few seconds.</div>`;
+  return `<div class="empty">Nothing matches these filters. Widen the time range or change the source selection.</div>`;
 }
 
 function render() {
@@ -314,7 +314,7 @@ function render() {
 let nextRefresh = null, lastRefresh = null;
 function tickClock() {
   $("#last").textContent = relTime(lastRefresh);
-  $("#next").textContent = data.refreshing ? "taranıyor…" : relTime(nextRefresh);
+  $("#next").textContent = data.refreshing ? "scanning…" : relTime(nextRefresh);
 }
 
 async function load() {
@@ -324,10 +324,10 @@ async function load() {
     lastRefresh = data.last_refresh; nextRefresh = data.next_refresh;
     render(); tickClock();
     $("#refresh").disabled = data.refreshing;
-    $("#refresh").textContent = data.refreshing ? "Taranıyor…" : "Şimdi yenile";
+    $("#refresh").textContent = data.refreshing ? "Scanning…" : "Refresh now";
     return data.refreshing;
   } catch {
-    $("#last").textContent = "sunucuya ulaşılamadı";
+    $("#last").textContent = "server unreachable";
     return false;
   }
 }
@@ -366,7 +366,7 @@ $("#v-stream").onclick = () => { ui.view = "stream"; store.set("view", "stream")
 $("#v-board").onclick = () => { ui.view = "board"; store.set("view", "board"); render(); };
 $("#markread").onclick = () => { data.items.forEach((it) => ui.read.add(it.id)); store.set("read", [...ui.read].slice(-5000)); render(); };
 $("#refresh").onclick = async () => {
-  $("#refresh").disabled = true; $("#refresh").textContent = "Taranıyor…";
+  $("#refresh").disabled = true; $("#refresh").textContent = "Scanning…";
   await fetch("/api/refresh", { method: "POST" }).catch(() => {});
   setTimeout(load, 1500);
 };
